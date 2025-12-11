@@ -15,6 +15,13 @@ from .database import engine
 from .deps import get_db
 from .config import settings
 
+
+
+
+# Đảm bảo thư mục uploads tồn tại trong Volume
+if not os.path.exists(settings.UPLOAD_DIR):
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    
 # Khởi tạo DB và tạo bảng nếu chưa có
 models.Base.metadata.create_all(bind=engine)
 
