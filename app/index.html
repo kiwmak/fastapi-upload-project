@@ -23,6 +23,65 @@
         .result { margin-top: 15px; padding: 10px; border-radius: 4px; font-size: 0.85em; background: #f1f3f5; border: 1px dashed #adb5bd; min-height: 20px; }
         .img-preview { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; }
         .img-preview img { width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; }
+        /* --- CSS CHO MODAL (XEM ẢNH PHÓNG TO) --- */
+.modal {
+    display: none; /* Mặc định ẩn */
+    position: fixed; 
+    z-index: 1000; /* Nổi lên trên cùng */
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.9); /* Màu đen mờ */
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 90vh; /* Không cao quá màn hình */
+    border: 2px solid white;
+    box-shadow: 0 0 20px rgba(255,255,255,0.2);
+    animation-name: zoom;
+    animation-duration: 0.3s;
+}
+
+/* Hiệu ứng zoom khi mở */
+@keyframes zoom {
+    from {transform:scale(0)} 
+    to {transform:scale(1)}
+}
+
+/* Nút đóng (X) */
+.close {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: #bbb;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Thay đổi con trỏ chuột khi di vào ảnh nhỏ */
+.image-list img {
+    cursor: zoom-in;
+    transition: transform 0.2s;
+}
+.image-list img:hover {
+    transform: scale(1.05); /* Phóng to nhẹ khi di chuột */
+}
     </style>
 </head>
 <body>
@@ -109,8 +168,31 @@
         <div class="result" id="listResult"></div>
     </div>
 </div>
-
+<div id="imageModal" class="modal">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <img class="modal-content" id="imgExpanded">
+</div>
 <script>
+    // --- LOGIC MODAL ---
+function openModal(src) {
+    const modal = document.getElementById("imageModal");
+    const modalImg = document.getElementById("imgExpanded");
+    
+    modal.style.display = "flex"; // Hiện modal
+    modalImg.src = src; // Gán đường dẫn ảnh
+}
+
+function closeModal() {
+    document.getElementById("imageModal").style.display = "none";
+}
+
+// Đóng modal khi click ra ngoài ảnh
+window.onclick = function(event) {
+    const modal = document.getElementById("imageModal");
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
     // 1. CẤU HÌNH & HELPER
     const formatDate = (ds) => new Date(ds).toLocaleString('vi-VN');
 
@@ -240,4 +322,5 @@
     });
 </script>
 </body>
+
 </html>
