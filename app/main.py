@@ -117,3 +117,37 @@ def index(request: Request):
             "test_image": test_image_url
         }
     )
+
+# --- ENDPOINTS GET DANH SÁCH ---
+
+@app.get("/api/orders", response_model=list)
+def list_orders(db: Session = Depends(get_db)):
+    """Trả về danh sách tất cả đơn hàng"""
+    orders = db.query(models.Order).all()
+    return [{"order_no": o.order_no, "created_at": o.created_at} for o in orders]
+
+@app.get("/api/items", response_model=list)
+def list_items(db: Session = Depends(get_db)):
+    """Trả về danh sách tất cả mã hàng"""
+    items = db.query(models.Item).all()
+    # Lấy thêm thông tin order_no để hiển thị
+    return [
+        {"item_code": i.item_code, "order_no": i.order.order_no, "created_at": i.created_at} 
+        for i in items
+    ]
+
+# ... (các endpoint khác)
+
+@app.get("/api/orders/{order_no}/items", response_model=list)
+def list_items_by_order(order_no: str, db: Session = Depends(get_db)):
+    """Trả về danh sách Mã hàng thuộc một Đơn hàng cụ thể"""
+    order = crud.get_order_by_no(db, order_no)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+        
+    # Lấy danh sách item từ mối quan hệ đã định nghĩa trong models.py
+    items = order.items 
+    return [
+        {"item_code": i.item_code, "order_no": order_no} 
+        for i in items
+    ]
