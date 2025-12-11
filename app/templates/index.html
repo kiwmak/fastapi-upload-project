@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>FastAPI Image Upload Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        form { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        input[type="text"], input[type="file"], button { padding: 8px; margin-top: 5px; display: block; width: 100%; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #0056b3; }
+        .result { margin-top: 10px; padding: 10px; background-color: #f8f8f8; border: 1px dashed #ddd; }
+        img { max-width: 100px; height: auto; border: 1px solid #ddd; margin-right: 10px;}
+        .image-list div { display: flex; align-items: center; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>FastAPI Image Upload Service</h1>
+
+    <h2>1. Tạo Đơn hàng (Order)</h2>
+    <form id="createOrderForm">
+        <label for="order_no_create">Mã Đơn hàng (Order No):</label>
+        <input type="text" id="order_no_create" name="order_no" required value="O-12345">
+        <button type="submit">Tạo Order</button>
+        <div class="result" id="orderResult"></div>
+    </form>
+
+    <h2>2. Tạo Mã hàng (Item)</h2>
+    <form id="createItemForm">
+        <label for="order_no_item">Mã Đơn hàng (Order No):</label>
+        <input type="text" id="order_no_item" name="order_no" required value="O-12345">
+        <label for="item_code_create">Mã hàng (Item Code):</label>
+        <input type="text" id="item_code_create" name="item_code" required value="SP-001">
+        <button type="submit">Tạo Item</button>
+        <div class="result" id="itemResult"></div>
+    </form>
+    
+    <h2>3. Upload Ảnh cho Mã hàng (Item)</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <label for="item_code_upload">Mã hàng (Item Code):</label>
+        <input type="text" id="item_code_upload" name="item_code" required value="SP-001">
+        
+        <label for="file">Chọn File Ảnh:</label>
+        <input type="file" id="file" name="file" accept="image/*" required>
+        
+        <button type="submit">Upload Ảnh</button>
+        <div class="result" id="uploadResult"></div>
+    </form>
+
+    <h2>4. Xem danh sách Ảnh của Mã hàng</h2>
+    <form id="listImagesForm">
+        <label for="item_code_list">Mã hàng (Item Code):</label>
+        <input type="text" id="item_code_list" name="item_code" required value="SP-001">
+        <button type="submit">Xem Ảnh</button>
+        <div class="result image-list" id="listResult"></div>
+    </form>
+
+    <script>
+        // Hàm chung để gửi Form Data (cho Order và Item)
+        function handleFormSubmit(formId, endpoint, resultId) {
+            document.getElementById(formId).addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const resultDiv = document.getElementById(resultId);
+                
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        body: new FormData(form),
+                    });
+                    
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        resultDiv.innerHTML = `<span style="color: red;">Lỗi (${response.status}): ${data.detail || 'Không xác định'}</span>`;
+                    } else {
+                        resultDiv.innerHTML = `<span style="color: green;">Thành công:</span> ${JSON.stringify(data)}`;
+                    }
+
+                } catch (error) {
+                    resultDiv.innerHTML = `<span style="color: red;">Lỗi kết nối: ${error.message}</span>`;
+                }
+            });
+        }
+
+        // 1. Order
+        handleFormSubmit('createOrderForm', '/orders', 'orderResult');
+
+        // 2. Item
+        handleFormSubmit('createItemForm', '/items', 'itemResult');
+
+
+        // 3. Upload Ảnh
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const itemCode = form.item_code.value;
+            const resultDiv = document.getElementById('uploadResult');
+
+            try {
+                const formData = new FormData();
+                formData.append('file', form.file.files[0]);
+                
+                const response = await fetch(`/items/${itemCode}/images`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                const data = await response.json();
+
+                if (!response.ok) {
+                    resultDiv.innerHTML = `<span style="color: red;">Lỗi Upload (${response.status}): ${data.detail || 'Không xác định'}</span>`;
+                } else {
+                    resultDiv.innerHTML = `<span style="color: green;">Upload Thành công:</span> 
+                                          Tên file: <b>${data.file_name}</b><br>
+                                          URL: <a href="${data.url}" target="_blank">${data.url}</a>`;
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = `<span style="color: red;">Lỗi kết nối: ${error.message}</span>`;
+            }
+        });
+
+
+        // 4. Xem Ảnh
+        document.getElementById('listImagesForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const itemCode = form.item_code.value;
+            const resultDiv = document.getElementById('listResult');
+            resultDiv.innerHTML = 'Đang tải...';
+
+            try {
+                const response = await fetch(`/items/${itemCode}/images`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    resultDiv.innerHTML = `<span style="color: red;">Lỗi (${response.status}): ${data.detail || 'Không xác định'}</span>`;
+                } else {
+                    if (data.length === 0) {
+                        resultDiv.innerHTML = `<span style="color: orange;">Không tìm thấy ảnh nào cho mã hàng này.</span>`;
+                    } else {
+                        let html = '';
+                        data.forEach(img => {
+                            html += `
+                                <div>
+                                    <img src="${img.url}" alt="${img.file_name}">
+                                    <div>
+                                        ID: ${img.id}<br>
+                                        URL: <a href="${img.url}" target="_blank">${img.url}</a><br>
+                                        Upload: ${new Date(img.uploaded_at).toLocaleString()}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        resultDiv.innerHTML = html;
+                    }
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = `<span style="color: red;">Lỗi kết nối: ${error.message}</span>`;
+            }
+        });
+    </script>
+</body>
+</html>
