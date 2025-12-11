@@ -5,17 +5,20 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "FastAPI Image Upload Service"
     UPLOAD_DIR: str = "app/static/uploads"
     
-    # Sử dụng property để xử lý chuỗi URL
     @property
     def DATABASE_URL(self) -> str:
+        # 1. Lấy biến từ hệ thống
         url = os.getenv("DATABASE_URL")
+        
+        # 2. Log kiểm tra (Sẽ hiện trong Deploy Logs của Railway)
         if not url:
-            # Trả về SQLite mặc định nếu không tìm thấy biến môi trường
+            print("⚠️ DATABASE_URL is EMPTY! Using SQLite as fallback.")
             return "sqlite:///./sql_app.db"
         
-        # Sửa lỗi format cho SQLAlchemy
+        # 3. Fix lỗi prefix cho Postgres
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql://", 1)
+        
         return url
 
 settings = Settings()
