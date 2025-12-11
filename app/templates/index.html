@@ -2,167 +2,242 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>FastAPI Image Upload Demo</title>
+    <title>FastAPI Image Upload Service</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h2 { border-bottom: 2px solid #eee; padding-bottom: 5px; }
-        form { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
-        input[type="text"], input[type="file"], button { padding: 8px; margin-top: 5px; display: block; width: 100%; box-sizing: border-box; }
-        button { background-color: #007bff; color: white; border: none; cursor: pointer; margin-top: 10px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; background-color: #f8f9fa; line-height: 1.6; }
+        h1 { color: #2c3e50; text-align: center; margin-bottom: 30px; border-bottom: 3px solid #007bff; padding-bottom: 10px; }
+        h2 { color: #34495e; border-left: 5px solid #007bff; padding-left: 10px; margin-top: 30px; }
+        .container { max-width: 1100px; margin: auto; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
+        th, td { border: 1px solid #dee2e6; padding: 12px; text-align: left; }
+        th { background-color: #e9ecef; color: #495057; }
+        
+        label { font-weight: bold; display: block; margin-top: 15px; color: #555; }
+        input, select, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ced4da; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 20px; }
         button:hover { background-color: #0056b3; }
-        .result { margin-top: 10px; padding: 10px; background-color: #f8f8f8; border: 1px dashed #ddd; }
-        img { max-width: 100px; height: auto; border: 1px solid #ddd; margin-right: 10px;}
-        .image-list div { display: flex; align-items: center; margin-bottom: 10px; }
+        
+        .result { margin-top: 15px; padding: 10px; border-radius: 4px; font-size: 0.85em; background: #f1f3f5; border: 1px dashed #adb5bd; min-height: 20px; }
+        .img-preview { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; }
+        .img-preview img { width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; }
     </style>
 </head>
 <body>
 
-    <h1>FastAPI Image Upload Service</h1>
+<div class="container">
+    <h1>Quản lý Ảnh Mã hàng & Đơn hàng</h1>
 
-    <h2>1. Tạo Đơn hàng (Order)</h2>
-    <form id="createOrderForm">
-        <label for="order_no_create">Mã Đơn hàng (Order No):</label>
-        <input type="text" id="order_no_create" name="order_no" required value="O-12345">
-        <button type="submit">Tạo Order</button>
-        <div class="result" id="orderResult"></div>
-    </form>
+    <div class="grid">
+        <div class="card">
+            <h2>Đơn hàng hiện có</h2>
+            <div style="max-height: 250px; overflow-y: auto;">
+                <table id="ordersTable">
+                    <thead><tr><th>Mã Đơn hàng</th><th>Ngày tạo</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Mã hàng hiện có</h2>
+            <div style="max-height: 250px; overflow-y: auto;">
+                <table id="itemsTable">
+                    <thead><tr><th>Mã hàng</th><th>Thuộc Order</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-    <h2>2. Tạo Mã hàng (Item)</h2>
-    <form id="createItemForm">
-        <label for="order_no_item">Mã Đơn hàng (Order No):</label>
-        <input type="text" id="order_no_item" name="order_no" required value="O-12345">
-        <label for="item_code_create">Mã hàng (Item Code):</label>
-        <input type="text" id="item_code_create" name="item_code" required value="SP-001">
-        <button type="submit">Tạo Item</button>
-        <div class="result" id="itemResult"></div>
-    </form>
-    
-    <h2>3. Upload Ảnh cho Mã hàng (Item)</h2>
-    <form id="uploadForm" enctype="multipart/form-data">
-        <label for="item_code_upload">Mã hàng (Item Code):</label>
-        <input type="text" id="item_code_upload" name="item_code" required value="SP-001">
-        
-        <label for="file">Chọn File Ảnh:</label>
-        <input type="file" id="file" name="file" accept="image/*" required>
-        
-        <button type="submit">Upload Ảnh</button>
-        <div class="result" id="uploadResult"></div>
-    </form>
+    <div class="grid">
+        <div class="card">
+            <h2>Tạo Đơn hàng mới</h2>
+            <form id="createOrderForm">
+                <label>Mã Đơn hàng (Order No):</label>
+                <input type="text" name="order_no" required placeholder="Ví dụ: ĐH-2025-001">
+                <button type="submit">LƯU ĐƠN HÀNG</button>
+                <div class="result" id="orderResult"></div>
+            </form>
+        </div>
+        <div class="card">
+            <h2>Tạo Mã hàng mới</h2>
+            <form id="createItemForm">
+                <label>Chọn Đơn hàng:</label>
+                <select id="order_no_select_for_item" name="order_no" required>
+                    <option value="" disabled selected>-- Chọn Đơn hàng --</option>
+                </select>
+                <label>Mã hàng (Item Code):</label>
+                <input type="text" name="item_code" required placeholder="Ví dụ: GIÀY-NIKE-01">
+                <button type="submit">LƯU MÃ HÀNG</button>
+                <div class="result" id="itemResult"></div>
+            </form>
+        </div>
+    </div>
 
-    <h2>4. Xem danh sách Ảnh của Mã hàng</h2>
-    <form id="listImagesForm">
-        <label for="item_code_list">Mã hàng (Item Code):</label>
-        <input type="text" id="item_code_list" name="item_code" required value="SP-001">
-        <button type="submit">Xem Ảnh</button>
-        <div class="result image-list" id="listResult"></div>
-    </form>
+    <div class="card">
+        <h2>Upload Ảnh cho Mã hàng</h2>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="grid">
+                <div>
+                    <label>Bước 1: Chọn Đơn hàng</label>
+                    <select id="order_no_upload" required>
+                        <option value="" disabled selected>-- Chọn Đơn hàng --</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Bước 2: Chọn Mã hàng</label>
+                    <select id="item_code_upload" name="item_code" required disabled>
+                        <option value="" disabled selected>-- Chọn Đơn hàng trước --</option>
+                    </select>
+                </div>
+            </div>
+            <label>Bước 3: Chọn File Ảnh</label>
+            <input type="file" id="file" name="file" accept="image/*" required>
+            <button type="submit" style="background-color: #28a745;">TIẾN HÀNH UPLOAD</button>
+            <div class="result" id="uploadResult"></div>
+        </form>
+    </div>
 
-    <script>
-        // Hàm chung để gửi Form Data (cho Order và Item)
-        function handleFormSubmit(formId, endpoint, resultId) {
-            document.getElementById(formId).addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const form = e.target;
-                const resultDiv = document.getElementById(resultId);
-                
-                try {
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        body: new FormData(form),
-                    });
-                    
-                    const data = await response.json();
+    <div class="card">
+        <h2>Xem ảnh theo Mã hàng</h2>
+        <select id="item_code_list" required>
+            <option value="" disabled selected>-- Chọn Mã hàng để xem --</option>
+        </select>
+        <button id="btnViewImages" style="background-color: #17a2b8;">XEM DANH SÁCH ẢNH</button>
+        <div class="result" id="listResult"></div>
+    </div>
+</div>
 
-                    if (!response.ok) {
-                        resultDiv.innerHTML = `<span style="color: red;">Lỗi (${response.status}): ${data.detail || 'Không xác định'}</span>`;
-                    } else {
-                        resultDiv.innerHTML = `<span style="color: green;">Thành công:</span> ${JSON.stringify(data)}`;
-                    }
+<script>
+    // 1. CẤU HÌNH & HELPER
+    const formatDate = (ds) => new Date(ds).toLocaleString('vi-VN');
 
-                } catch (error) {
-                    resultDiv.innerHTML = `<span style="color: red;">Lỗi kết nối: ${error.message}</span>`;
-                }
+    // 2. HÀM TẢI TOÀN BỘ DỮ LIỆU (Orders & Items)
+    async function loadAllData() {
+        console.log("Đang tải dữ liệu...");
+        try {
+            // TẢI ORDERS
+            const resOrders = await fetch('/api/orders');
+            const orders = await resOrders.json();
+            
+            const tableOrderBody = document.querySelector('#ordersTable tbody');
+            const selectOrderForItem = document.getElementById('order_no_select_for_item');
+            const selectOrderForUpload = document.getElementById('order_no_upload');
+
+            tableOrderBody.innerHTML = '';
+            selectOrderForItem.innerHTML = '<option value="" disabled selected>-- Chọn Đơn hàng --</option>';
+            selectOrderForUpload.innerHTML = '<option value="" disabled selected>-- Chọn Đơn hàng --</option>';
+
+            orders.forEach(o => {
+                tableOrderBody.innerHTML += `<tr><td>${o.order_no}</td><td>${formatDate(o.created_at)}</td></tr>`;
+                const opt = `<option value="${o.order_no}">${o.order_no}</option>`;
+                selectOrderForItem.innerHTML += opt;
+                selectOrderForUpload.innerHTML += opt;
             });
+
+            // TẢI ITEMS (Cho bảng và danh sách xem ảnh)
+            const resItems = await fetch('/api/items');
+            const items = await resItems.json();
+            
+            const tableItemBody = document.querySelector('#itemsTable tbody');
+            const selectItemList = document.getElementById('item_code_list');
+
+            tableItemBody.innerHTML = '';
+            selectItemList.innerHTML = '<option value="" disabled selected>-- Chọn Mã hàng --</option>';
+
+            items.forEach(i => {
+                tableItemBody.innerHTML += `<tr><td>${i.item_code}</td><td>${i.order_no}</td></tr>`;
+                selectItemList.innerHTML += `<option value="${i.item_code}">${i.item_code} (${i.order_no})</option>`;
+            });
+
+        } catch (err) {
+            console.error("Lỗi loadAllData:", err);
         }
+    }
 
-        // 1. Order
-        handleFormSubmit('createOrderForm', '/orders', 'orderResult');
+    // 3. HÀM TẢI MÃ HÀNG THEO ĐƠN HÀNG (Dùng cho Upload)
+    async function loadItemsByOrder(orderNo) {
+        const itemSelect = document.getElementById('item_code_upload');
+        itemSelect.disabled = true;
+        itemSelect.innerHTML = '<option disabled selected>Đang tải...</option>';
 
-        // 2. Item
-        handleFormSubmit('createItemForm', '/items', 'itemResult');
-
-
-        // 3. Upload Ảnh
-        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const form = e.target;
-            const itemCode = form.item_code.value;
-            const resultDiv = document.getElementById('uploadResult');
-
-            try {
-                const formData = new FormData();
-                formData.append('file', form.file.files[0]);
-                
-                const response = await fetch(`/items/${itemCode}/images`, {
-                    method: 'POST',
-                    body: formData,
+        try {
+            const res = await fetch(`/api/orders/${orderNo}/items`);
+            const items = await res.json();
+            itemSelect.innerHTML = '<option value="" disabled selected>-- Chọn Mã hàng --</option>';
+            
+            if (items.length > 0) {
+                items.forEach(i => {
+                    itemSelect.innerHTML += `<option value="${i.item_code}">${i.item_code}</option>`;
                 });
-                
-                const data = await response.json();
-
-                if (!response.ok) {
-                    resultDiv.innerHTML = `<span style="color: red;">Lỗi Upload (${response.status}): ${data.detail || 'Không xác định'}</span>`;
-                } else {
-                    resultDiv.innerHTML = `<span style="color: green;">Upload Thành công:</span> 
-                                          Tên file: <b>${data.file_name}</b><br>
-                                          URL: <a href="${data.url}" target="_blank">${data.url}</a>`;
-                }
-
-            } catch (error) {
-                resultDiv.innerHTML = `<span style="color: red;">Lỗi kết nối: ${error.message}</span>`;
+                itemSelect.disabled = false;
+            } else {
+                itemSelect.innerHTML = '<option disabled>Order này chưa có mã hàng</option>';
             }
+        } catch (err) {
+            itemSelect.innerHTML = '<option disabled>Lỗi tải dữ liệu</option>';
+        }
+    }
+
+    // 4. XỬ LÝ SỰ KIỆN FORM
+    document.addEventListener('DOMContentLoaded', () => {
+        loadAllData();
+
+        // Khi chọn Order ở phần Upload -> Load Items tương ứng
+        document.getElementById('order_no_upload').addEventListener('change', (e) => {
+            loadItemsByOrder(e.target.value);
         });
 
-
-        // 4. Xem Ảnh
-        document.getElementById('listImagesForm').addEventListener('submit', async (e) => {
+        // Xử lý tạo Order
+        document.getElementById('createOrderForm').onsubmit = async (e) => {
             e.preventDefault();
-            const form = e.target;
-            const itemCode = form.item_code.value;
-            const resultDiv = document.getElementById('listResult');
-            resultDiv.innerHTML = 'Đang tải...';
+            const res = await fetch('/orders', { method: 'POST', body: new FormData(e.target) });
+            const data = await res.json();
+            document.getElementById('orderResult').innerText = JSON.stringify(data);
+            if (res.ok) { e.target.reset(); loadAllData(); }
+        };
 
-            try {
-                const response = await fetch(`/items/${itemCode}/images`);
-                const data = await response.json();
+        // Xử lý tạo Item
+        document.getElementById('createItemForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await fetch('/items', { method: 'POST', body: new FormData(e.target) });
+            const data = await res.json();
+            document.getElementById('itemResult').innerText = JSON.stringify(data);
+            if (res.ok) { e.target.reset(); loadAllData(); }
+        };
 
-                if (!response.ok) {
-                    resultDiv.innerHTML = `<span style="color: red;">Lỗi (${response.status}): ${data.detail || 'Không xác định'}</span>`;
-                } else {
-                    if (data.length === 0) {
-                        resultDiv.innerHTML = `<span style="color: orange;">Không tìm thấy ảnh nào cho mã hàng này.</span>`;
-                    } else {
-                        let html = '';
-                        data.forEach(img => {
-                            html += `
-                                <div>
-                                    <img src="${img.url}" alt="${img.file_name}">
-                                    <div>
-                                        ID: ${img.id}<br>
-                                        URL: <a href="${img.url}" target="_blank">${img.url}</a><br>
-                                        Upload: ${new Date(img.uploaded_at).toLocaleString()}
-                                    </div>
-                                </div>
-                            `;
-                        });
-                        resultDiv.innerHTML = html;
-                    }
-                }
+        // Xử lý Upload
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const itemCode = document.getElementById('item_code_upload').value;
+            const formData = new FormData();
+            formData.append('file', document.getElementById('file').files[0]);
 
-            } catch (error) {
-                resultDiv.innerHTML = `<span style="color: red;">Lỗi kết nối: ${error.message}</span>`;
-            }
-        });
-    </script>
+            const res = await fetch(`/items/${itemCode}/images`, { method: 'POST', body: formData });
+            const data = await res.json();
+            document.getElementById('uploadResult').innerText = res.ok ? "Upload thành công!" : data.detail;
+            if (res.ok) e.target.reset();
+        };
+
+        // Xem ảnh
+        document.getElementById('btnViewImages').onclick = async () => {
+            const code = document.getElementById('item_code_list').value;
+            if(!code) return alert("Chọn mã hàng!");
+            const res = await fetch(`/items/${code}/images`);
+            const data = await res.json();
+            const listDiv = document.getElementById('listResult');
+            listDiv.innerHTML = data.length ? '' : 'Không có ảnh.';
+            data.forEach(img => {
+                listDiv.innerHTML += `
+                    <div class="img-preview">
+                        <img src="${img.url}">
+                        <div><b>${img.file_name}</b><br><small>${formatDate(img.uploaded_at)}</small></div>
+                    </div>`;
+            });
+        };
+    });
+</script>
 </body>
 </html>
