@@ -6,3 +6,4 @@ python-multipart
 jinja2
 pydantic-settings
 gunicorn
+psycopg2-binary
