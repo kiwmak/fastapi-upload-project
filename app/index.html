@@ -287,16 +287,22 @@
 
         // GALLERY
         async function loadImages() {
-            const code = document.getElementById('selItemView').value;
-            const div = document.getElementById('galleryArea');
-            div.innerHTML = "Đang tải...";
-            const res = await fetch(`/items/${code}/images`);
-            const imgs = await res.json();
-            div.innerHTML = imgs.length ? imgs.map(img => `
-                <div class="img-card" onclick="openLightbox('${img.url}')">
-                    <img src="${img.url}">
-                </div>`).join('') : '<p>Chưa có ảnh</p>';
-        }
+    const code = document.getElementById('selItemView').value;
+    const div = document.getElementById('galleryArea');
+    div.innerHTML = "Đang tải...";
+    const res = await fetch(`/items/${code}/images`);
+    const imgs = await res.json();
+    
+    div.innerHTML = imgs.length ? imgs.map(img => `
+        <div class="img-card">
+            <img 
+                src="${img.url}" 
+                onclick="openLightbox(this.src)" 
+                alt="Ảnh mã hàng ${code}"
+                style="cursor: zoom-in;"
+            >
+        </div>`).join('') : '<p>Chưa có ảnh</p>';
+}
 
         // LIGHTBOX
         function openLightbox(src) {
@@ -311,3 +317,4 @@
     </script>
 </body>
 </html>
+
