@@ -2,116 +2,154 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản Lý Ảnh Đơn Hàng (FastAPI)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quản Lý Ảnh (Mobile & PC)</title>
     <style>
-        /* --- 1. CSS CƠ BẢN --- */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
-            margin: 0;
-            padding: 20px;
+        /* --- 1. CẤU HÌNH CHUNG --- */
+        :root {
+            --primary: #007bff; /* Màu chủ đạo */
+            --bg: #f4f7f6;
+            --white: #ffffff;
+            --text: #333;
         }
-        h1, h2, h3 { color: #1a73e8; margin-top: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 10px; /* Giảm padding trên mobile */
+        }
         
-        /* Layout chia cột */
-        .container { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        /* Layout linh hoạt: PC chia cột, Mobile xếp chồng */
+        .container {
+            display: flex;
+            flex-wrap: wrap; /* Tự động xuống dòng khi màn hình nhỏ */
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
         .box {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            flex: 1;
-            min-width: 300px; /* Xuống dòng nếu màn hình nhỏ */
+            background: var(--white);
+            padding: 15px;
+            border-radius: 10px; /* Bo tròn mềm mại hơn cho giống App */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            flex: 1 1 300px; /* Co giãn tối thiểu 300px */
+            width: 100%;
         }
 
-        /* Form elements */
-        label { font-weight: 600; font-size: 0.9em; margin-top: 10px; display: block; }
+        h3 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 1.1em; color: #444; }
+
+        /* --- 2. INPUT & BUTTON (TỐI ƯU CẢM ỨNG) --- */
+        /* Input to hơn để dễ bấm trên điện thoại */
         input, select, textarea {
             width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            padding: 12px; /* Tăng vùng chạm */
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
             box-sizing: border-box;
+            font-size: 16px; /* Size 16px ngăn iOS tự zoom khi nhập liệu */
+            background: #fff;
+        }
+
+        /* Nút bấm dạng khối lớn, dễ chạm ngón tay */
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 5px;
+            touch-action: manipulation; /* Tăng tốc độ phản hồi cảm ứng */
+        }
+        button:active { background-color: #0056b3; transform: scale(0.98); }
+
+        /* --- 3. BẢNG DỮ LIỆU (CUỘN NGANG TRÊN MOBILE) --- */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto; /* Cho phép cuộn ngang nếu bảng quá rộng */
+            -webkit-overflow-scrolling: touch; /* Cuộn mượt trên iOS */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 300px; /* Đảm bảo bảng không bị bóp méo quá mức */
+        }
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
             font-size: 14px;
         }
-        input:focus, select:focus { border-color: #1a73e8; outline: none; }
+        th { background-color: #f8f9fa; white-space: nowrap; }
 
-        /* Nút bấm */
-        button {
-            background-color: #1a73e8; color: white; border: none;
-            padding: 10px 15px; border-radius: 5px; cursor: pointer;
-            font-weight: bold; width: 100%; transition: background 0.2s;
+        /* --- 4. THƯ VIỆN ẢNH (GALLERY) --- */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Tự điều chỉnh số cột */
+            gap: 10px;
         }
-        button:hover { background-color: #1557b0; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-
-        /* Bảng dữ liệu */
-        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-        th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
-        th { background-color: #f8f9fa; color: #555; }
-
-        /* Khu vực hiển thị kết quả/Lỗi */
-        .result-box {
-            margin-top: 10px; padding: 10px; border-radius: 4px;
-            font-size: 0.9em; background: #f8f9fa; border: 1px dashed #ccc;
-            word-wrap: break-word;
-        }
-
-        /* --- 2. CSS DANH SÁCH ẢNH (GALLERY) --- */
-        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
-        .img-card { 
-            border: 1px solid #ddd; border-radius: 8px; overflow: hidden; 
-            background: #fff; text-align: center; padding-bottom: 5px;
+        .img-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+            text-align: center;
         }
         .img-card img {
-            width: 100%; height: 100px; object-fit: cover;
-            cursor: zoom-in; /* Con trỏ hình kính lúp */
-            transition: transform 0.2s;
+            width: 100%;
+            height: 100px; /* Ảnh vuông vắn trên mobile */
+            object-fit: cover;
+            display: block;
         }
-        .img-card img:hover { transform: scale(1.05); }
-        .img-card small { font-size: 0.75em; color: #666; display: block; padding: 0 5px; }
-        .img-card a { font-size: 0.75em; text-decoration: none; color: #1a73e8; }
 
-        /* --- 3. CSS MODAL (LIGHTBOX PHÓNG TO) --- */
+        /* --- 5. MODAL (PHÓNG TO ẢNH) --- */
         .modal {
-            display: none; /* Ẩn mặc định */
-            position: fixed; z-index: 1000; left: 0; top: 0;
-            width: 100%; height: 100%; overflow: auto;
-            background-color: rgba(0,0,0,0.9); /* Nền đen mờ */
-            justify-content: center; align-items: center;
+            display: none;
+            position: fixed; z-index: 9999;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            align-items: center; justify-content: center;
         }
         .modal-content {
-            margin: auto; display: block;
-            max-width: 90%; max-height: 90vh;
-            border: 3px solid #fff;
-            box-shadow: 0 0 20px rgba(255,255,255,0.2);
-            animation: zoom 0.3s;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Đảm bảo ảnh luôn nằm trọn trong màn hình điện thoại */
         }
-        /* Hiệu ứng zoom */
-        @keyframes zoom { from {transform:scale(0.1)} to {transform:scale(1)} }
-        
-        /* Nút đóng X */
-        .close {
-            position: absolute; top: 20px; right: 35px;
-            color: #fff; font-size: 40px; font-weight: bold;
-            transition: 0.3s; cursor: pointer;
+        .close-btn {
+            position: absolute;
+            top: 15px; right: 15px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-size: 24px;
+            cursor: pointer;
         }
-        .close:hover { color: #bbb; }
 
+        /* --- 6. TỐI ƯU RIÊNG CHO PC (MÀN HÌNH LỚN) --- */
+        @media (min-width: 768px) {
+            .container { flex-wrap: nowrap; } /* PC thì chia cột ngang */
+            .box { margin-bottom: 0; }
+            button { width: auto; padding: 10px 20px; } /* Nút trên PC nhỏ gọn hơn */
+        }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align: center;">🚀 Hệ Thống Quản Lý Ảnh Sản Phẩm</h1>
+    <h2 style="text-align: center; color: var(--primary);">📱 Quản Lý Ảnh Đơn Hàng</h2>
 
     <div class="container">
         <div class="box">
-            <h3>📦 Đơn hàng (Orders)</h3>
-            <div style="max-height: 200px; overflow-y: auto;">
+            <h3>Danh sách Đơn (Orders)</h3>
+            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
                 <table id="tableOrders">
                     <thead><tr><th>Mã Đơn</th><th>Ngày tạo</th></tr></thead>
                     <tbody></tbody>
@@ -119,10 +157,10 @@
             </div>
         </div>
         <div class="box">
-            <h3>🏷️ Mã hàng (Items)</h3>
-            <div style="max-height: 200px; overflow-y: auto;">
+            <h3>Mã hàng (Items)</h3>
+            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
                 <table id="tableItems">
-                    <thead><tr><th>Mã hàng</th><th>Thuộc Order</th></tr></thead>
+                    <thead><tr><th>Item</th><th>Order</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -131,269 +169,145 @@
 
     <div class="container">
         <div class="box">
-            <h3>📝 Tạo Mới</h3>
+            <h3>Tạo Mới & Upload</h3>
             
-            <form id="formCreateOrder" style="border-bottom: 1px dashed #ccc; padding-bottom: 15px;">
-                <label>1. Tạo Đơn hàng mới:</label>
-                <div style="display: flex; gap: 5px;">
-                    <input type="text" name="order_no" placeholder="Ví dụ: PO-2024-001" required>
-                    <button type="submit" style="width: 80px;">Lưu</button>
-                </div>
-                <div id="resOrder" class="result-box" style="display:none;"></div>
-            </form>
+            <details open>
+                <summary><b>1. Tạo Đơn Hàng Mới</b></summary>
+                <form id="formCreateOrder" style="margin-top: 10px;">
+                    <input type="text" name="order_no" placeholder="Nhập Mã Đơn (VD: O-2025)" required>
+                    <button type="submit">Lưu Đơn</button>
+                    <div id="resOrder" style="color: green; margin-top: 5px;"></div>
+                </form>
+            </details>
+            <hr>
 
-            <form id="formCreateItem" style="margin-top: 15px;">
-                <label>2. Tạo Mã hàng (Chọn Order trước):</label>
-                <select id="selOrderCreate" name="order_no" required>
-                    <option value="">-- Đang tải --</option>
-                </select>
-                <div style="display: flex; gap: 5px;">
-                    <input type="text" name="item_code" placeholder="Ví dụ: ITEM-A-01" required>
-                    <button type="submit" style="width: 80px;">Lưu</button>
-                </div>
-                <div id="resItem" class="result-box" style="display:none;"></div>
-            </form>
-        </div>
+            <details>
+                <summary><b>2. Tạo Mã Hàng</b></summary>
+                <form id="formCreateItem" style="margin-top: 10px;">
+                    <select id="selOrderCreate" name="order_no" required><option>Đang tải...</option></select>
+                    <input type="text" name="item_code" placeholder="Nhập Mã Hàng" required>
+                    <button type="submit">Lưu Mã Hàng</button>
+                    <div id="resItem" style="color: green; margin-top: 5px;"></div>
+                </form>
+            </details>
+            <hr>
 
-        <div class="box">
-            <h3>📥 Import Hàng Loạt (JSON)</h3>
-            <form id="formImport">
-                <label>Dán nội dung JSON vào đây:</label>
-                <textarea id="jsonInput" rows="5" placeholder='[{"order_no": "O1", "items": [{"item_code": "I1"}]}]'></textarea>
-                <button type="submit" style="background-color: #28a745;">Import Dữ Liệu</button>
-                <div id="resImport" class="result-box" style="display:none;"></div>
-            </form>
+            <details>
+                <summary><b>3. Upload Ảnh</b></summary>
+                <form id="formUpload" enctype="multipart/form-data" style="margin-top: 10px;">
+                    <select id="selOrderUpload" required><option>-- Chọn Đơn --</option></select>
+                    <select id="selItemUpload" name="item_code" required disabled><option>-- Chọn Mã --</option></select>
+                    <input type="file" name="file" accept="image/*" required> <button type="submit" style="background: #28a745;">⬆️ Tải Lên</button>
+                    <div id="resUpload" style="margin-top: 5px;"></div>
+                </form>
+            </details>
         </div>
     </div>
 
     <div class="container">
-        <div class="box" style="flex: 1;">
-            <h3>📤 Upload Ảnh</h3>
-            <form id="formUpload" enctype="multipart/form-data">
-                <label>Bước 1: Chọn Đơn hàng</label>
-                <select id="selOrderUpload" required>
-                    <option value="" disabled selected>-- Chọn Order --</option>
+        <div class="box">
+            <h3>Thư Viện Ảnh</h3>
+            <div style="display: flex; gap: 10px;">
+                <select id="selItemView" style="flex:1;">
+                    <option value="" disabled selected>-- Chọn Mã Hàng --</option>
                 </select>
-
-                <label>Bước 2: Chọn Mã hàng</label>
-                <select id="selItemUpload" name="item_code" required disabled>
-                    <option value="" disabled selected>-- Chọn Order trước --</option>
-                </select>
-
-                <label>Bước 3: Chọn File Ảnh</label>
-                <input type="file" name="file" accept="image/*" required>
-                
-                <button type="submit" style="background-color: #e67e22;">⬆️ Upload Ngay</button>
-                <div id="resUpload" class="result-box" style="display:none;"></div>
-            </form>
-        </div>
-
-        <div class="box" style="flex: 2;">
-            <h3>🖼️ Thư Viện Ảnh</h3>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <select id="selItemView" style="flex: 1;">
-                    <option value="" disabled selected>-- Chọn Mã hàng để xem --</option>
-                </select>
-                <button onclick="loadImages()" style="width: 100px;">Xem</button>
+                <button onclick="loadImages()" style="width: auto;">Xem</button>
             </div>
-            
-            <div id="galleryArea" class="gallery">
-                <p style="text-align: center; width: 100%; color: #888;">Vui lòng chọn mã hàng để xem ảnh.</p>
+            <div id="galleryArea" class="gallery" style="margin-top: 15px;">
+                <p style="color: #777; font-size: 0.9em;">Chọn mã hàng để xem ảnh.</p>
             </div>
         </div>
     </div>
 
-    <div id="lightbox" class="modal">
-        <span class="close" onclick="closeLightbox()">&times;</span>
+    <div id="lightbox" class="modal" onclick="closeLightbox()">
+        <span class="close-btn">&times;</span>
         <img class="modal-content" id="imgExpanded">
     </div>
 
     <script>
-        // --- CẤU HÌNH & UTILS ---
-        const API_PREFIX = "/api"; // Prefix nếu có, hiện tại dùng root
-        const formatDate = (str) => new Date(str).toLocaleString('vi-VN');
+        const formatDate = (str) => new Date(str).toLocaleDateString('vi-VN');
 
-        // --- 1. HÀM LOAD DỮ LIỆU CHUNG ---
+        // LOAD DATA
         async function loadInitialData() {
             try {
-                // Fetch Orders
-                const resOrd = await fetch('/api/orders');
-                const orders = await resOrd.json();
+                const [orders, items] = await Promise.all([
+                    fetch('/api/orders').then(r => r.json()),
+                    fetch('/api/items').then(r => r.json())
+                ]);
+
+                // Render Table
+                document.querySelector('#tableOrders tbody').innerHTML = orders.map(o => `<tr><td>${o.order_no}</td><td>${formatDate(o.created_at)}</td></tr>`).join('');
+                document.querySelector('#tableItems tbody').innerHTML = items.map(i => `<tr><td>${i.item_code}</td><td>${i.order_no}</td></tr>`).join('');
+
+                // Render Dropdowns
+                const ordOpts = '<option value="" disabled selected>-- Chọn Đơn --</option>' + orders.map(o => `<option value="${o.order_no}">${o.order_no}</option>`).join('');
+                document.getElementById('selOrderCreate').innerHTML = ordOpts;
+                document.getElementById('selOrderUpload').innerHTML = ordOpts;
                 
-                // Fetch Items
-                const resItm = await fetch('/api/items');
-                const items = await resItm.json();
+                document.getElementById('selItemView').innerHTML = '<option value="" disabled selected>-- Chọn Mã Hàng --</option>' + 
+                    items.map(i => `<option value="${i.item_code}">${i.item_code} (${i.order_no})</option>`).join('');
 
-                // 1.1 Render Table Orders
-                const tblOrd = document.querySelector('#tableOrders tbody');
-                tblOrd.innerHTML = orders.map(o => `<tr><td>${o.order_no}</td><td>${formatDate(o.created_at)}</td></tr>`).join('');
-
-                // 1.2 Render Table Items
-                const tblItm = document.querySelector('#tableItems tbody');
-                tblItm.innerHTML = items.map(i => `<tr><td>${i.item_code}</td><td>${i.order_no}</td></tr>`).join('');
-
-                // 1.3 Populate Dropdowns (Tạo Item & Upload & View)
-                const optsOrd = '<option value="" disabled selected>-- Chọn Order --</option>' + 
-                                orders.map(o => `<option value="${o.order_no}">${o.order_no}</option>`).join('');
-                
-                document.getElementById('selOrderCreate').innerHTML = optsOrd;
-                document.getElementById('selOrderUpload').innerHTML = optsOrd;
-
-                const optsItm = '<option value="" disabled selected>-- Chọn Mã hàng --</option>' + 
-                                items.map(i => `<option value="${i.item_code}">${i.item_code} (thuộc ${i.order_no})</option>`).join('');
-                document.getElementById('selItemView').innerHTML = optsItm;
-
-            } catch (err) {
-                console.error("Lỗi load data:", err);
-            }
+            } catch (e) { console.error(e); }
         }
 
-        // --- 2. LOGIC DROPDOWN CẤP C (Khi chọn Order -> Load Item) ---
-        document.getElementById('selOrderUpload').addEventListener('change', async function() {
-            const orderNo = this.value;
-            const selItem = document.getElementById('selItemUpload');
-            
-            selItem.innerHTML = '<option>Đang tải...</option>';
-            selItem.disabled = true;
+        // UPLOAD LOGIC
+        document.getElementById('selOrderUpload').onchange = async function() {
+            const res = await fetch(`/api/orders/${this.value}/items`);
+            const items = await res.json();
+            const sel = document.getElementById('selItemUpload');
+            sel.innerHTML = items.length ? items.map(i => `<option value="${i.item_code}">${i.item_code}</option>`).join('') : '<option>Không có mã</option>';
+            sel.disabled = false;
+        };
 
+        // SUBMIT FORMS
+        const postData = async (url, body, resId) => {
+            const div = document.getElementById(resId);
+            div.innerText = "Đang xử lý...";
             try {
-                const res = await fetch(`/api/orders/${orderNo}/items`);
-                const items = await res.json();
-                
-                if (items.length === 0) {
-                    selItem.innerHTML = '<option>Không có mã hàng nào</option>';
-                } else {
-                    selItem.innerHTML = items.map(i => `<option value="${i.item_code}">${i.item_code}</option>`).join('');
-                    selItem.disabled = false;
-                }
-            } catch (e) {
-                selItem.innerHTML = '<option>Lỗi tải data</option>';
-            }
-        });
-
-        // --- 3. XỬ LÝ CÁC FORM SUBMIT ---
-        // Hàm hiển thị thông báo
-        function showMsg(elementId, msg, isError = false) {
-            const el = document.getElementById(elementId);
-            el.style.display = 'block';
-            el.style.color = isError ? 'red' : 'green';
-            el.innerHTML = isError ? `❌ ${msg}` : `✅ ${msg}`;
-            setTimeout(() => { el.style.display = 'none'; }, 5000);
-        }
-
-        // 3.1 Tạo Order
-        document.getElementById('formCreateOrder').onsubmit = async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const res = await fetch('/orders', { method: 'POST', body: formData });
-            if (res.ok) { showMsg('resOrder', 'Tạo Order thành công'); loadInitialData(); e.target.reset(); }
-            else { const d = await res.json(); showMsg('resOrder', d.detail, true); }
+                const res = await fetch(url, { method: 'POST', body });
+                if(res.ok) { div.innerText = "✅ Thành công!"; div.style.color="green"; loadInitialData(); }
+                else { const d = await res.json(); div.innerText = "❌ " + d.detail; div.style.color="red"; }
+            } catch(e) { div.innerText = "❌ Lỗi mạng"; }
         };
 
-        // 3.2 Tạo Item
-        document.getElementById('formCreateItem').onsubmit = async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const res = await fetch('/items', { method: 'POST', body: formData });
-            if (res.ok) { showMsg('resItem', 'Tạo Item thành công'); loadInitialData(); e.target.reset(); }
-            else { const d = await res.json(); showMsg('resItem', d.detail, true); }
-        };
-
-        // 3.3 Import JSON
-        document.getElementById('formImport').onsubmit = async (e) => {
-            e.preventDefault();
-            const jsonText = document.getElementById('jsonInput').value;
+        document.getElementById('formCreateOrder').onsubmit = function(e) { e.preventDefault(); postData('/orders', new FormData(this), 'resOrder'); };
+        document.getElementById('formCreateItem').onsubmit = function(e) { e.preventDefault(); postData('/items', new FormData(this), 'resItem'); };
+        
+        document.getElementById('formUpload').onsubmit = async function(e) { 
+            e.preventDefault(); 
+            const code = document.getElementById('selItemUpload').value;
+            const div = document.getElementById('resUpload');
+            div.innerText = "⏳ Đang upload...";
             try {
-                const jsonData = JSON.parse(jsonText);
-                const res = await fetch('/import/orders', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ orders: jsonData })
-                });
-                if(res.ok) { showMsg('resImport', 'Import thành công!'); loadInitialData(); }
-                else { const d = await res.json(); showMsg('resImport', d.detail || 'Lỗi server', true); }
-            } catch (err) {
-                showMsg('resImport', 'Lỗi cú pháp JSON', true);
-            }
+                const res = await fetch(`/items/${code}/images`, { method: 'POST', body: new FormData(this) });
+                if(res.ok) { div.innerHTML = `✅ <a href="${(await res.json()).url}" target="_blank" style="color:blue">Xem ảnh</a>`; if(document.getElementById('selItemView').value===code) loadImages(); }
+                else div.innerText = "❌ Lỗi upload";
+            } catch(e) { div.innerText = "❌ Lỗi mạng"; }
         };
 
-        // 3.4 Upload Ảnh
-        document.getElementById('formUpload').onsubmit = async (e) => {
-            e.preventDefault();
-            const itemCode = document.getElementById('selItemUpload').value;
-            if(!itemCode) return alert("Vui lòng chọn Mã hàng!");
-
-            const formData = new FormData(e.target);
-            const msgBox = document.getElementById('resUpload');
-            msgBox.style.display = 'block'; msgBox.innerHTML = '⏳ Đang upload...';
-
-            try {
-                const res = await fetch(`/items/${itemCode}/images`, { method: 'POST', body: formData });
-                const data = await res.json();
-                if(res.ok) {
-                    msgBox.innerHTML = `✅ Upload xong! <a href="${data.url}" target="_blank">Xem ảnh</a>`;
-                    // Nếu đang xem đúng item này thì reload gallery
-                    if(document.getElementById('selItemView').value === itemCode) loadImages();
-                } else {
-                    msgBox.innerHTML = `❌ Lỗi: ${data.detail}`;
-                }
-            } catch (err) {
-                msgBox.innerHTML = `❌ Lỗi kết nối`;
-            }
-        };
-
-        // --- 4. GALLERY & LIGHTBOX ---
+        // GALLERY
         async function loadImages() {
-            const itemCode = document.getElementById('selItemView').value;
-            const gallery = document.getElementById('galleryArea');
-            if(!itemCode) return;
-
-            gallery.innerHTML = '<p>Đang tải ảnh...</p>';
-            try {
-                const res = await fetch(`/items/${itemCode}/images`);
-                const imgs = await res.json();
-
-                if (imgs.length === 0) {
-                    gallery.innerHTML = '<p>Chưa có ảnh nào cho mã này.</p>';
-                    return;
-                }
-
-                // Render ảnh
-                gallery.innerHTML = imgs.map(img => `
-                    <div class="img-card">
-                        <img src="${img.url}" onclick="openLightbox(this.src)" title="Click để phóng to">
-                        <small>ID: ${img.id}</small>
-                        <a href="${img.url}" target="_blank">Link gốc</a>
-                    </div>
-                `).join('');
-            } catch (e) {
-                gallery.innerHTML = '<p style="color:red">Lỗi tải ảnh</p>';
-            }
+            const code = document.getElementById('selItemView').value;
+            const div = document.getElementById('galleryArea');
+            div.innerHTML = "Đang tải...";
+            const res = await fetch(`/items/${code}/images`);
+            const imgs = await res.json();
+            div.innerHTML = imgs.length ? imgs.map(img => `
+                <div class="img-card" onclick="openLightbox('${img.url}')">
+                    <img src="${img.url}">
+                </div>`).join('') : '<p>Chưa có ảnh</p>';
         }
 
-        // Các hàm điều khiển Modal (Lightbox)
+        // LIGHTBOX
         function openLightbox(src) {
-            const modal = document.getElementById("lightbox");
-            const modalImg = document.getElementById("imgExpanded");
-            modal.style.display = "flex";
-            modalImg.src = src;
+            document.getElementById('lightbox').style.display = 'flex';
+            document.getElementById('imgExpanded').src = src;
         }
-
         function closeLightbox() {
-            document.getElementById("lightbox").style.display = "none";
+            document.getElementById('lightbox').style.display = 'none';
         }
 
-        // Đóng khi click ra vùng đen
-        window.onclick = function(event) {
-            const modal = document.getElementById("lightbox");
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        }
-
-        // --- KHỞI CHẠY LẦN ĐẦU ---
         loadInitialData();
-
     </script>
 </body>
 </html>
