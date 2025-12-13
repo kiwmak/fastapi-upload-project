@@ -3,81 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FastAPI Image Upload Service</title>
+    <title>Quản Lý Ảnh Đơn Hàng (FastAPI)</title>
     <style>
-        /* --- CSS CHUNG --- */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f7f6; color: #333; }
-        h1, h2, h3 { color: #2c3e50; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
-        
-        /* Container cho các khối dữ liệu */
-        .container { display: flex; gap: 20px; flex-wrap: wrap; }
-        .box { flex: 1; min-width: 300px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        
-        /* Form elements */
-        label { font-weight: bold; margin-top: 10px; display: block; }
-        input[type="text"], input[type="file"], select, textarea { 
-            width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; 
-            border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; 
+        /* --- 1. CSS CƠ BẢN --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
         }
+        h1, h2, h3 { color: #1a73e8; margin-top: 0; }
         
-        /* Buttons */
-        button { background-color: #007bff; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; width: 100%; }
-        button:hover { background-color: #0056b3; }
-        
-        /* Kết quả thông báo */
-        .result { margin-top: 10px; padding: 10px; background-color: #f8f9fa; border: 1px dashed #ced4da; border-radius: 4px; font-size: 0.9em; word-break: break-all; }
-        
-        /* Bảng dữ liệu */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #e9ecef; }
-        
-        /* Danh sách ảnh */
-        .image-item { display: flex; align-items: center; border-bottom: 1px solid #eee; padding: 10px 0; }
-        .image-item img { 
-            width: 100px; height: 100px; object-fit: cover; border-radius: 4px; 
-            border: 1px solid #ddd; margin-right: 15px; cursor: zoom-in; transition: transform 0.2s; 
+        /* Layout chia cột */
+        .container { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 300px; /* Xuống dòng nếu màn hình nhỏ */
         }
-        .image-item img:hover { transform: scale(1.05); }
 
-        /* --- CSS CHO MODAL (LIGHTBOX PHÓNG TO ẢNH) --- */
+        /* Form elements */
+        label { font-weight: 600; font-size: 0.9em; margin-top: 10px; display: block; }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        input:focus, select:focus { border-color: #1a73e8; outline: none; }
+
+        /* Nút bấm */
+        button {
+            background-color: #1a73e8; color: white; border: none;
+            padding: 10px 15px; border-radius: 5px; cursor: pointer;
+            font-weight: bold; width: 100%; transition: background 0.2s;
+        }
+        button:hover { background-color: #1557b0; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* Bảng dữ liệu */
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
+        th { background-color: #f8f9fa; color: #555; }
+
+        /* Khu vực hiển thị kết quả/Lỗi */
+        .result-box {
+            margin-top: 10px; padding: 10px; border-radius: 4px;
+            font-size: 0.9em; background: #f8f9fa; border: 1px dashed #ccc;
+            word-wrap: break-word;
+        }
+
+        /* --- 2. CSS DANH SÁCH ẢNH (GALLERY) --- */
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+        .img-card { 
+            border: 1px solid #ddd; border-radius: 8px; overflow: hidden; 
+            background: #fff; text-align: center; padding-bottom: 5px;
+        }
+        .img-card img {
+            width: 100%; height: 100px; object-fit: cover;
+            cursor: zoom-in; /* Con trỏ hình kính lúp */
+            transition: transform 0.2s;
+        }
+        .img-card img:hover { transform: scale(1.05); }
+        .img-card small { font-size: 0.75em; color: #666; display: block; padding: 0 5px; }
+        .img-card a { font-size: 0.75em; text-decoration: none; color: #1a73e8; }
+
+        /* --- 3. CSS MODAL (LIGHTBOX PHÓNG TO) --- */
         .modal {
-            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
-            width: 100%; height: 100%; overflow: auto; 
-            background-color: rgba(0,0,0,0.9); 
+            display: none; /* Ẩn mặc định */
+            position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; overflow: auto;
+            background-color: rgba(0,0,0,0.9); /* Nền đen mờ */
             justify-content: center; align-items: center;
         }
         .modal-content {
-            margin: auto; display: block; max-width: 90%; max-height: 90vh;
-            border: 2px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.2);
+            margin: auto; display: block;
+            max-width: 90%; max-height: 90vh;
+            border: 3px solid #fff;
+            box-shadow: 0 0 20px rgba(255,255,255,0.2);
             animation: zoom 0.3s;
         }
-        @keyframes zoom { from {transform:scale(0)} to {transform:scale(1)} }
+        /* Hiệu ứng zoom */
+        @keyframes zoom { from {transform:scale(0.1)} to {transform:scale(1)} }
+        
+        /* Nút đóng X */
         .close {
-            position: absolute; top: 20px; right: 35px; color: #f1f1f1;
-            font-size: 40px; font-weight: bold; transition: 0.3s; cursor: pointer;
+            position: absolute; top: 20px; right: 35px;
+            color: #fff; font-size: 40px; font-weight: bold;
+            transition: 0.3s; cursor: pointer;
         }
         .close:hover { color: #bbb; }
+
     </style>
 </head>
 <body>
 
-    <h1>🚀 Hệ thống Quản lý Upload Ảnh Đơn hàng</h1>
+    <h1 style="text-align: center;">🚀 Hệ Thống Quản Lý Ảnh Sản Phẩm</h1>
 
     <div class="container">
         <div class="box">
-            <h3>📦 Danh sách Đơn hàng</h3>
-            <div style="max-height: 300px; overflow-y: auto;">
-                <table id="ordersTable">
+            <h3>📦 Đơn hàng (Orders)</h3>
+            <div style="max-height: 200px; overflow-y: auto;">
+                <table id="tableOrders">
                     <thead><tr><th>Mã Đơn</th><th>Ngày tạo</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
         </div>
         <div class="box">
-            <h3>🏷️ Danh sách Mã hàng</h3>
-            <div style="max-height: 300px; overflow-y: auto;">
-                <table id="itemsTable">
+            <h3>🏷️ Mã hàng (Items)</h3>
+            <div style="max-height: 200px; overflow-y: auto;">
+                <table id="tableItems">
                     <thead><tr><th>Mã hàng</th><th>Thuộc Order</th></tr></thead>
                     <tbody></tbody>
                 </table>
@@ -89,134 +133,126 @@
         <div class="box">
             <h3>📝 Tạo Mới</h3>
             
-            <h4>1. Tạo Đơn hàng</h4>
-            <form id="createOrderForm">
-                <input type="text" name="order_no" required placeholder="Nhập Mã Đơn (VD: O-2025)">
-                <button type="submit">Lưu Order</button>
-                <div class="result" id="orderResult"></div>
+            <form id="formCreateOrder" style="border-bottom: 1px dashed #ccc; padding-bottom: 15px;">
+                <label>1. Tạo Đơn hàng mới:</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" name="order_no" placeholder="Ví dụ: PO-2024-001" required>
+                    <button type="submit" style="width: 80px;">Lưu</button>
+                </div>
+                <div id="resOrder" class="result-box" style="display:none;"></div>
             </form>
-            <hr>
-            
-            <h4>2. Tạo Mã hàng</h4>
-            <form id="createItemForm">
-                <label>Chọn Đơn hàng:</label>
-                <select id="order_no_item" name="order_no" required>
-                    <option value="" disabled selected>-- Đang tải --</option>
+
+            <form id="formCreateItem" style="margin-top: 15px;">
+                <label>2. Tạo Mã hàng (Chọn Order trước):</label>
+                <select id="selOrderCreate" name="order_no" required>
+                    <option value="">-- Đang tải --</option>
                 </select>
-                <input type="text" name="item_code" required placeholder="Nhập Mã hàng (VD: SP-001)">
-                <button type="submit">Lưu Item</button>
-                <div class="result" id="itemResult"></div>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" name="item_code" placeholder="Ví dụ: ITEM-A-01" required>
+                    <button type="submit" style="width: 80px;">Lưu</button>
+                </div>
+                <div id="resItem" class="result-box" style="display:none;"></div>
             </form>
         </div>
 
         <div class="box">
-            <h3>📥 Import Batch (JSON)</h3>
-            <form id="importForm">
-                <label>Dán JSON (Order & Items):</label>
-                <textarea id="import_data" rows="8" required placeholder='[{"order_no": "O-A", "items": [{"item_code": "SP-A1"}]}]'></textarea>
-                <button type="submit" style="background-color: #28a745;">Import Dữ liệu</button>
-                <div class="result" id="importResult"></div>
+            <h3>📥 Import Hàng Loạt (JSON)</h3>
+            <form id="formImport">
+                <label>Dán nội dung JSON vào đây:</label>
+                <textarea id="jsonInput" rows="5" placeholder='[{"order_no": "O1", "items": [{"item_code": "I1"}]}]'></textarea>
+                <button type="submit" style="background-color: #28a745;">Import Dữ Liệu</button>
+                <div id="resImport" class="result-box" style="display:none;"></div>
             </form>
         </div>
     </div>
 
     <div class="container">
-        <div class="box">
+        <div class="box" style="flex: 1;">
             <h3>📤 Upload Ảnh</h3>
-            <form id="uploadForm" enctype="multipart/form-data">
+            <form id="formUpload" enctype="multipart/form-data">
                 <label>Bước 1: Chọn Đơn hàng</label>
-                <select id="order_no_upload" required>
+                <select id="selOrderUpload" required>
                     <option value="" disabled selected>-- Chọn Order --</option>
                 </select>
 
                 <label>Bước 2: Chọn Mã hàng</label>
-                <select id="item_code_upload" name="item_code" required disabled>
-                    <option value="" disabled selected>-- Vui lòng chọn Order trước --</option>
+                <select id="selItemUpload" name="item_code" required disabled>
+                    <option value="" disabled selected>-- Chọn Order trước --</option>
                 </select>
 
-                <label>Bước 3: Chọn Ảnh</label>
+                <label>Bước 3: Chọn File Ảnh</label>
                 <input type="file" name="file" accept="image/*" required>
                 
-                <button type="submit" style="background-color: #e67e22;">Upload Ngay</button>
-                <div class="result" id="uploadResult"></div>
+                <button type="submit" style="background-color: #e67e22;">⬆️ Upload Ngay</button>
+                <div id="resUpload" class="result-box" style="display:none;"></div>
             </form>
         </div>
 
         <div class="box" style="flex: 2;">
-            <h3>🖼️ Thư viện Ảnh</h3>
-            <form id="listImagesForm">
-                <div style="display: flex; gap: 10px;">
-                    <select id="item_code_list" name="item_code" required>
-                        <option value="" disabled selected>-- Chọn Mã hàng để xem --</option>
-                    </select>
-                    <button type="submit" style="width: auto;">Xem</button>
-                </div>
-            </form>
-            <div class="result" id="listResult" style="margin-top: 20px;">
-                <p style="text-align: center; color: #777;">Chọn mã hàng để hiển thị ảnh...</p>
+            <h3>🖼️ Thư Viện Ảnh</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <select id="selItemView" style="flex: 1;">
+                    <option value="" disabled selected>-- Chọn Mã hàng để xem --</option>
+                </select>
+                <button onclick="loadImages()" style="width: 100px;">Xem</button>
+            </div>
+            
+            <div id="galleryArea" class="gallery">
+                <p style="text-align: center; width: 100%; color: #888;">Vui lòng chọn mã hàng để xem ảnh.</p>
             </div>
         </div>
     </div>
 
-    <div id="imageModal" class="modal">
-        <span class="close" onclick="closeModal()">&times;</span>
+    <div id="lightbox" class="modal">
+        <span class="close" onclick="closeLightbox()">&times;</span>
         <img class="modal-content" id="imgExpanded">
     </div>
 
     <script>
-        const formatDate = (dateString) => new Date(dateString).toLocaleString('vi-VN');
+        // --- CẤU HÌNH & UTILS ---
+        const API_PREFIX = "/api"; // Prefix nếu có, hiện tại dùng root
+        const formatDate = (str) => new Date(str).toLocaleString('vi-VN');
 
-        // --- 1. HÀM TẢI DỮ LIỆU TOÀN TRANG ---
-        async function loadAllData() {
-            console.log("Reloading data...");
+        // --- 1. HÀM LOAD DỮ LIỆU CHUNG ---
+        async function loadInitialData() {
             try {
-                // Load Orders
-                const resOrders = await fetch('/api/orders');
-                const orders = await resOrders.json();
+                // Fetch Orders
+                const resOrd = await fetch('/api/orders');
+                const orders = await resOrd.json();
                 
-                // Elements cần update
-                const tableOrders = document.querySelector('#ordersTable tbody');
-                const selCreate = document.getElementById('order_no_item');
-                const selUpload = document.getElementById('order_no_upload');
+                // Fetch Items
+                const resItm = await fetch('/api/items');
+                const items = await resItm.json();
 
-                tableOrders.innerHTML = '';
-                selCreate.innerHTML = '<option value="" disabled selected>-- Chọn Order --</option>';
-                selUpload.innerHTML = '<option value="" disabled selected>-- Chọn Order --</option>';
+                // 1.1 Render Table Orders
+                const tblOrd = document.querySelector('#tableOrders tbody');
+                tblOrd.innerHTML = orders.map(o => `<tr><td>${o.order_no}</td><td>${formatDate(o.created_at)}</td></tr>`).join('');
 
-                orders.forEach(o => {
-                    // Update Table
-                    tableOrders.insertRow().innerHTML = `<td>${o.order_no}</td><td>${formatDate(o.created_at)}</td>`;
-                    
-                    // Update Dropdowns
-                    const opt = `<option value="${o.order_no}">${o.order_no}</option>`;
-                    selCreate.insertAdjacentHTML('beforeend', opt);
-                    selUpload.insertAdjacentHTML('beforeend', opt);
-                });
+                // 1.2 Render Table Items
+                const tblItm = document.querySelector('#tableItems tbody');
+                tblItm.innerHTML = items.map(i => `<tr><td>${i.item_code}</td><td>${i.order_no}</td></tr>`).join('');
 
-                // Load Items (Cho bảng và Dropdown xem ảnh)
-                const resItems = await fetch('/api/items');
-                const items = await resItems.json();
+                // 1.3 Populate Dropdowns (Tạo Item & Upload & View)
+                const optsOrd = '<option value="" disabled selected>-- Chọn Order --</option>' + 
+                                orders.map(o => `<option value="${o.order_no}">${o.order_no}</option>`).join('');
                 
-                const tableItems = document.querySelector('#itemsTable tbody');
-                const selView = document.getElementById('item_code_list');
+                document.getElementById('selOrderCreate').innerHTML = optsOrd;
+                document.getElementById('selOrderUpload').innerHTML = optsOrd;
 
-                tableItems.innerHTML = '';
-                selView.innerHTML = '<option value="" disabled selected>-- Chọn Mã hàng --</option>';
-
-                items.forEach(i => {
-                    tableItems.insertRow().innerHTML = `<td>${i.item_code}</td><td>${i.order_no}</td>`;
-                    selView.insertAdjacentHTML('beforeend', `<option value="${i.item_code}">${i.item_code} (${i.order_no})</option>`);
-                });
+                const optsItm = '<option value="" disabled selected>-- Chọn Mã hàng --</option>' + 
+                                items.map(i => `<option value="${i.item_code}">${i.item_code} (thuộc ${i.order_no})</option>`).join('');
+                document.getElementById('selItemView').innerHTML = optsItm;
 
             } catch (err) {
-                console.error(err);
-                alert("Lỗi tải dữ liệu. Kiểm tra console.");
+                console.error("Lỗi load data:", err);
             }
         }
 
-        // --- 2. LOGIC CASCADING DROPDOWN (Upload Form) ---
-        async function loadItemsByOrder(orderNo) {
-            const selItem = document.getElementById('item_code_upload');
+        // --- 2. LOGIC DROPDOWN CẤP C (Khi chọn Order -> Load Item) ---
+        document.getElementById('selOrderUpload').addEventListener('change', async function() {
+            const orderNo = this.value;
+            const selItem = document.getElementById('selItemUpload');
+            
             selItem.innerHTML = '<option>Đang tải...</option>';
             selItem.disabled = true;
 
@@ -224,114 +260,140 @@
                 const res = await fetch(`/api/orders/${orderNo}/items`);
                 const items = await res.json();
                 
-                selItem.innerHTML = '<option value="" disabled selected>-- Chọn Mã hàng --</option>';
-                if(items.length === 0) {
-                    selItem.innerHTML = '<option disabled>Không có Mã hàng</option>';
+                if (items.length === 0) {
+                    selItem.innerHTML = '<option>Không có mã hàng nào</option>';
                 } else {
-                    items.forEach(i => {
-                        selItem.insertAdjacentHTML('beforeend', `<option value="${i.item_code}">${i.item_code}</option>`);
-                    });
+                    selItem.innerHTML = items.map(i => `<option value="${i.item_code}">${i.item_code}</option>`).join('');
                     selItem.disabled = false;
                 }
-            } catch (err) {
+            } catch (e) {
                 selItem.innerHTML = '<option>Lỗi tải data</option>';
             }
-        }
-
-        document.getElementById('order_no_upload').addEventListener('change', (e) => {
-            loadItemsByOrder(e.target.value);
         });
 
-        // --- 3. XỬ LÝ SUBMIT CÁC FORM ---
-        async function handleForm(id, url, resultId, isJson = false) {
-            document.getElementById(id).addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const resultDiv = document.getElementById(resultId);
-                resultDiv.innerHTML = 'Đang xử lý...';
-                
-                try {
-                    let options = { method: 'POST' };
-                    
-                    if (isJson) {
-                        // Xử lý riêng cho Import JSON
-                        const val = document.getElementById('import_data').value;
-                        options.headers = { 'Content-Type': 'application/json' };
-                        options.body = JSON.stringify({ orders: JSON.parse(val) });
-                    } else if (id === 'uploadForm') {
-                         // Xử lý riêng cho Upload Ảnh
-                         const formData = new FormData(e.target);
-                         const itemCode = document.getElementById('item_code_upload').value;
-                         // URL động cho upload
-                         const res = await fetch(`/items/${itemCode}/images`, { method: 'POST', body: formData });
-                         const data = await res.json();
-                         if(!res.ok) throw new Error(data.detail);
-                         resultDiv.innerHTML = `<b style="color:green">Upload OK:</b> <a href="${data.url}" target="_blank">Link ảnh</a>`;
-                         return; // Kết thúc sớm
-                    } else {
-                        // Form thường (Tạo Order/Item)
-                        options.body = new FormData(e.target);
-                    }
-
-                    // Gọi API chung
-                    const res = await fetch(url, options);
-                    const data = await res.json();
-                    
-                    if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
-                    
-                    resultDiv.innerHTML = `<b style="color:green">Thành công!</b>`;
-                    e.target.reset(); // Reset form
-                    loadAllData(); // Refresh dữ liệu bảng
-
-                } catch (err) {
-                    resultDiv.innerHTML = `<b style="color:red">Lỗi:</b> ${err.message}`;
-                }
-            });
+        // --- 3. XỬ LÝ CÁC FORM SUBMIT ---
+        // Hàm hiển thị thông báo
+        function showMsg(elementId, msg, isError = false) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.style.color = isError ? 'red' : 'green';
+            el.innerHTML = isError ? `❌ ${msg}` : `✅ ${msg}`;
+            setTimeout(() => { el.style.display = 'none'; }, 5000);
         }
 
-        handleForm('createOrderForm', '/orders', 'orderResult');
-        handleForm('createItemForm', '/items', 'itemResult');
-        handleForm('importForm', '/import/orders', 'importResult', true);
-        handleForm('uploadForm', '', 'uploadResult'); // URL xử lý bên trong
-
-        // --- 4. XEM ẢNH & LIGHTBOX ---
-        document.getElementById('listImagesForm').addEventListener('submit', async (e) => {
+        // 3.1 Tạo Order
+        document.getElementById('formCreateOrder').onsubmit = async (e) => {
             e.preventDefault();
-            const code = document.getElementById('item_code_list').value;
-            const div = document.getElementById('listResult');
-            div.innerHTML = 'Đang tải...';
-            
-            const res = await fetch(`/items/${code}/images`);
-            const imgs = await res.json();
-            
-            if (imgs.length === 0) div.innerHTML = 'Chưa có ảnh nào.';
-            else {
-                div.innerHTML = imgs.map(img => `
-                    <div class="image-item">
-                        <img src="${img.url}" onclick="openModal(this.src)" title="Phóng to">
-                        <div>
-                            <b>${img.file_name}</b><br>
-                            <small>${formatDate(img.uploaded_at)}</small><br>
-                            <a href="${img.url}" target="_blank">Link gốc</a>
-                        </div>
+            const formData = new FormData(e.target);
+            const res = await fetch('/orders', { method: 'POST', body: formData });
+            if (res.ok) { showMsg('resOrder', 'Tạo Order thành công'); loadInitialData(); e.target.reset(); }
+            else { const d = await res.json(); showMsg('resOrder', d.detail, true); }
+        };
+
+        // 3.2 Tạo Item
+        document.getElementById('formCreateItem').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const res = await fetch('/items', { method: 'POST', body: formData });
+            if (res.ok) { showMsg('resItem', 'Tạo Item thành công'); loadInitialData(); e.target.reset(); }
+            else { const d = await res.json(); showMsg('resItem', d.detail, true); }
+        };
+
+        // 3.3 Import JSON
+        document.getElementById('formImport').onsubmit = async (e) => {
+            e.preventDefault();
+            const jsonText = document.getElementById('jsonInput').value;
+            try {
+                const jsonData = JSON.parse(jsonText);
+                const res = await fetch('/import/orders', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ orders: jsonData })
+                });
+                if(res.ok) { showMsg('resImport', 'Import thành công!'); loadInitialData(); }
+                else { const d = await res.json(); showMsg('resImport', d.detail || 'Lỗi server', true); }
+            } catch (err) {
+                showMsg('resImport', 'Lỗi cú pháp JSON', true);
+            }
+        };
+
+        // 3.4 Upload Ảnh
+        document.getElementById('formUpload').onsubmit = async (e) => {
+            e.preventDefault();
+            const itemCode = document.getElementById('selItemUpload').value;
+            if(!itemCode) return alert("Vui lòng chọn Mã hàng!");
+
+            const formData = new FormData(e.target);
+            const msgBox = document.getElementById('resUpload');
+            msgBox.style.display = 'block'; msgBox.innerHTML = '⏳ Đang upload...';
+
+            try {
+                const res = await fetch(`/items/${itemCode}/images`, { method: 'POST', body: formData });
+                const data = await res.json();
+                if(res.ok) {
+                    msgBox.innerHTML = `✅ Upload xong! <a href="${data.url}" target="_blank">Xem ảnh</a>`;
+                    // Nếu đang xem đúng item này thì reload gallery
+                    if(document.getElementById('selItemView').value === itemCode) loadImages();
+                } else {
+                    msgBox.innerHTML = `❌ Lỗi: ${data.detail}`;
+                }
+            } catch (err) {
+                msgBox.innerHTML = `❌ Lỗi kết nối`;
+            }
+        };
+
+        // --- 4. GALLERY & LIGHTBOX ---
+        async function loadImages() {
+            const itemCode = document.getElementById('selItemView').value;
+            const gallery = document.getElementById('galleryArea');
+            if(!itemCode) return;
+
+            gallery.innerHTML = '<p>Đang tải ảnh...</p>';
+            try {
+                const res = await fetch(`/items/${itemCode}/images`);
+                const imgs = await res.json();
+
+                if (imgs.length === 0) {
+                    gallery.innerHTML = '<p>Chưa có ảnh nào cho mã này.</p>';
+                    return;
+                }
+
+                // Render ảnh
+                gallery.innerHTML = imgs.map(img => `
+                    <div class="img-card">
+                        <img src="${img.url}" onclick="openLightbox(this.src)" title="Click để phóng to">
+                        <small>ID: ${img.id}</small>
+                        <a href="${img.url}" target="_blank">Link gốc</a>
                     </div>
                 `).join('');
+            } catch (e) {
+                gallery.innerHTML = '<p style="color:red">Lỗi tải ảnh</p>';
             }
-        });
-
-        // Modal Logic
-        function openModal(src) {
-            document.getElementById("imageModal").style.display = "flex";
-            document.getElementById("imgExpanded").src = src;
-        }
-        function closeModal() {
-            document.getElementById("imageModal").style.display = "none";
-        }
-        window.onclick = (e) => {
-            if (e.target == document.getElementById("imageModal")) closeModal();
         }
 
-        // --- KHỞI CHẠY ---
-        loadAllData();
+        // Các hàm điều khiển Modal (Lightbox)
+        function openLightbox(src) {
+            const modal = document.getElementById("lightbox");
+            const modalImg = document.getElementById("imgExpanded");
+            modal.style.display = "flex";
+            modalImg.src = src;
+        }
+
+        function closeLightbox() {
+            document.getElementById("lightbox").style.display = "none";
+        }
+
+        // Đóng khi click ra vùng đen
+        window.onclick = function(event) {
+            const modal = document.getElementById("lightbox");
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        // --- KHỞI CHẠY LẦN ĐẦU ---
+        loadInitialData();
+
     </script>
 </body>
 </html>
